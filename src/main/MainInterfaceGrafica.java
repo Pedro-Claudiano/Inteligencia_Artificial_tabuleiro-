@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- *
  * @author Douglas
  */
 public final class MainInterfaceGrafica extends JFrame {
@@ -17,9 +16,24 @@ public final class MainInterfaceGrafica extends JFrame {
         Brancas: 1
         Pretas: 2
         Damas: 3 (branca) ou 4 (preta)
+    
+        -> REGRAS DO JOGO
+
+            - DEFINIR QUEM UTILIZARÁ AS PEÇAS BRANCAS (COMEÇA O JOGO)
+            - OBRIGATÓRIO COMER A PEÇA
+            - NÃO É PERMITIDO COMER PRA TRÁS
+            - UMA PEÇA PODE COMER MÚLTIPLAS PEÇAS, EM QUALQUER
+            DIREÇÃO, DESDE QUE A PRIMEIRA SEJA PARA FRENTE
+            - A DAMA PODE ANDAR INFINITAS CASAS, RESPEITANDO O LIMITE DO TABULEIRO
+            - A DAMA PODE COMER PRA TRÁS
+            - A DAMA PODE COMER MÚLTIPLAS PEÇAS
+            - A ÚLTIMA PEÇA A SER COMIDA PELA DAMA 
+            INDICA A POSIÇÃO QUE A DAMA DEVERÁ PARAR 
+            (POSIÇÃO SUBSEQUENTE NA DIREÇÃO DA COMIDA)
+            - NA IMPOSSIBILIDADE DE EFETUAR JOGADAS, 
+            O JOGADOR TRAVADO PERDE O JOGO
     */
     private final Tabuleiro tabuleiroLogico; 
-
     private int linhaOrigem = -1, colOrigem = -1;
 
     public MainInterfaceGrafica() {
@@ -52,8 +66,8 @@ public final class MainInterfaceGrafica extends JFrame {
                     tabuleiroInterface[i][j].setBackground(new Color(119, 149, 86));  // Verde
                 }
 
-                final int linha = i;
-                final int coluna = j;
+                int linha = i;
+                int coluna = j;
                 tabuleiroInterface[i][j].addActionListener(e -> tratarClique(linha, coluna));
                 add(tabuleiroInterface[i][j]);
             }
@@ -90,6 +104,8 @@ public final class MainInterfaceGrafica extends JFrame {
                 /*
                     VERIFICAÇÃO DE QUEM É A VEZ DE JOGAR E IMPLEMENTAÇÃO DA JOGADA DA IA
                 */
+                
+                
             } else {
                 // Se o movimento for inválido (ex: clicar em cima de outra peça)
                 cancelarSelecao();
@@ -107,26 +123,20 @@ public final class MainInterfaceGrafica extends JFrame {
     }
 
     private boolean moverPecaLogica(int r1, int c1, int r2, int c2) {
-        
-        // A casa de destino deve estar vazia
-        if (tabuleiroLogico.getMatriz()[r2][c2] == 0) {
-            
-            // Transfere o valor (seja 1, 2, 3 ou 4) para a nova posição
-            tabuleiroLogico.getMatriz()[r2][c2] = tabuleiroLogico.getMatriz()[r1][c1];
-            tabuleiroLogico.getMatriz()[r1][c1] = 0;
+        boolean sucesso = tabuleiroLogico.verificaMovimento(r1, c1, r2, c2);
 
-            // Promoção simples para Dama (opcional)
-            if (tabuleiroLogico.getMatriz()[r2][c2] == 2 && r2 == 5) {
+        if (sucesso) {
+            int peca = tabuleiroLogico.getMatriz()[r2][c2];
+            if (peca == 2 && r2 == 5) {
                 tabuleiroLogico.getMatriz()[r2][c2] = 4;
-            }
-            if (tabuleiroLogico.getMatriz()[r2][c2] == 1 && r2 == 0) {
+            } else if (peca == 1 && r2 == 0) {
                 tabuleiroLogico.getMatriz()[r2][c2] = 3;
             }
-
-            return true;
         }
-        return false;
+
+        return sucesso;
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(MainInterfaceGrafica::new);

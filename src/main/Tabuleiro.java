@@ -1,12 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package main;
 
 /**
- *
  * @author Douglas
  */
 public class Tabuleiro implements Cloneable {
@@ -48,8 +42,32 @@ public class Tabuleiro implements Cloneable {
     }
     
     /*
-        Implmentação dos métodos - getMovimentosPossiveis(), fazerMovimento(), etc
+        Implementação dos métodos - getMovimentosPossiveis(), fazerMovimento(), etc
     */
+    public boolean verificaMovimento (int lAntiga,int cAntiga,int lNova,int cNova) {
+        if (lNova < 0 || lNova >= TAMANHO || cNova < 0 || cNova >= TAMANHO) {
+            return false;
+        }
+        if ((lNova + cNova) % 2 == 0) {
+            return false;
+        }
+
+        int deltaLinha = Math.abs(lNova - lAntiga);
+        int deltaColuna = Math.abs(cNova - cAntiga);
+
+        if (deltaLinha != 1 || deltaColuna != 1) {
+            return false;
+        }
+
+        if (matriz[lNova][cNova] != 0) {
+            return false;
+        }
+        matriz[lNova][cNova] = matriz[lAntiga][cAntiga];
+        matriz[lAntiga][cAntiga] = 0;
+
+        return true;
+    }
+    
 
     public int[][] getMatriz() {
         return matriz;
