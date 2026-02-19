@@ -73,6 +73,10 @@ public final class MainInterfaceGrafica extends JFrame {
             }
         }
     }
+    private void atualizarTitulo() {
+        String jogador = (tabuleiroLogico.getTurnoAtual() == Tabuleiro.BRANCA) ? "BRANCAS" : "PRETAS";
+        setTitle("DISCIPLINA - IA - VEZ DAS " + jogador);
+    }
 
     private void tratarClique(int linha, int col) {
         
@@ -80,10 +84,12 @@ public final class MainInterfaceGrafica extends JFrame {
         if (linhaOrigem == -1) {
             
             // Verifica se a casa clicada contém QUALQUER peça (1, 2, 3 ou 4)
-            if (tabuleiroLogico.getMatriz()[linha][col] != 0) {
+            if (tabuleiroLogico.TurnoCorreto(linha, col)) {
                 linhaOrigem = linha;
                 colOrigem = col;
                 tabuleiroInterface[linha][col].setBackground(Color.YELLOW); // Destaque do clique
+
+                atualizarTitulo();
             }
         } 
         // Caso 2: Já existe uma peça selecionada, tentando mover
@@ -98,8 +104,10 @@ public final class MainInterfaceGrafica extends JFrame {
             boolean sucesso = moverPecaLogica(linhaOrigem, colOrigem, linha, col);
 
             if (sucesso) {
+                tabuleiroLogico.alternarTurno();
                 cancelarSelecao();
                 sincronizarInterface();
+                atualizarTitulo();
 
                 /*
                     VERIFICAÇÃO DE QUEM É A VEZ DE JOGAR E IMPLEMENTAÇÃO DA JOGADA DA IA

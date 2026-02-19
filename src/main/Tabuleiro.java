@@ -5,11 +5,16 @@ package main;
  */
 public class Tabuleiro implements Cloneable {
 
-    private int[][] matriz;
+    private char [][] matriz;
     private final int TAMANHO = 6;
+    public static final int VAZIO = 0;
+    public static final int BRANCA = 1;
+    public static final int PRETA = 2;
+    public static final int DAMA_BRANCA = 3;
+    public static final int DAMA_PRETA = 4;
 
     public Tabuleiro() {
-        this.matriz = new int[TAMANHO][TAMANHO];
+        this.matriz = new char[TAMANHO][TAMANHO];
         inicializar();
     }
 
@@ -18,20 +23,43 @@ public class Tabuleiro implements Cloneable {
             for (int j = 0; j < TAMANHO; j++) {
                 if ((i + j) % 2 != 0) {
                     if (i < 2) {
-                        matriz[i][j] = 2; // Pretas
-                    } else if (i > 3) {
-                        matriz[i][j] = 1; // Brancas
+                        matriz[i][j] = PRETA; // Pretas
+                    }else if (i > 3) {
+                        matriz[i][j] = BRANCA; // Brancas
+                    }else{
+                        matriz[i][j] = VAZIO;
                     }
+                }else{
+                    matriz[i][j] = VAZIO;
                 }
             }
         }
+    }
+
+    private int turnoAtual=BRANCA;
+
+    public int getTurnoAtual() {
+        return turnoAtual;
+    }
+
+    public boolean TurnoCorreto(int l,int c){
+        char peca = matriz[l][c];
+        if(turnoAtual==BRANCA){
+            return(peca==BRANCA || peca==DAMA_BRANCA);
+        }else{
+            return(peca==PRETA || peca==DAMA_PRETA);
+        }
+    }
+
+    public void alternarTurno() {
+        this.turnoAtual = (this.turnoAtual == BRANCA) ? PRETA : BRANCA;
     }
 
     @Override
     public Tabuleiro clone() {
         try {
             Tabuleiro clone = (Tabuleiro) super.clone();
-            clone.matriz = new int[TAMANHO][];
+            clone.matriz = new char[TAMANHO][];
             for (int i = 0; i < TAMANHO; i++) {
                 clone.matriz[i] = this.matriz[i].clone();
             }
@@ -69,11 +97,11 @@ public class Tabuleiro implements Cloneable {
     }
     
 
-    public int[][] getMatriz() {
+    public char[][] getMatriz() {
         return matriz;
     }
 
-    public void setMatriz(int[][] matriz) {
+    public void setMatriz(char[][] matriz) {
         this.matriz = matriz;
     }
 }
