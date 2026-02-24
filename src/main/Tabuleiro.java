@@ -13,6 +13,33 @@ public class Tabuleiro implements Cloneable {
     public static final int DAMA_BRANCA = 3;
     public static final int DAMA_PRETA = 4;
 
+    private static final int[][] DECODER_POSICAO = {
+            {0,1}, {0,3}, {0,5}, // a, b, c
+            {1,0}, {1,2}, {1,4}, // d, e, f
+            {2,1}, {2,3}, {2,5}, // g, h, i
+            {3,0}, {3,2}, {3,4}, // j, k, l
+            {4,1}, {4,3}, {4,5}, // m, n, o
+            {5,0}, {5,2}, {5,4}  // p, q, r
+    };
+
+    private static final char[][] ENCODER_POSICAO = {
+            {' ', 'a', ' ', 'b', ' ', 'c'},
+            {'d', ' ', 'e', ' ', 'f', ' '},
+            {' ', 'g', ' ', 'h', ' ', 'i'},
+            {'j', ' ', 'k', ' ', 'l', ' '},
+            {' ', 'm', ' ', 'n', ' ', 'o'},
+            {'p', ' ', 'q', ' ', 'r', ' '}
+    };
+
+    public int[] getCoordenadas(char id) {
+        return DECODER_POSICAO[id - 'a'];
+    }
+
+    public char getId(int l, int c) {
+        return ENCODER_POSICAO[l][c];
+    }
+
+
     public Tabuleiro() {
         this.matriz = new char[TAMANHO][TAMANHO];
         inicializar();
@@ -90,12 +117,33 @@ public class Tabuleiro implements Cloneable {
         if (matriz[lNova][cNova] != 0) {
             return false;
         }
+
+        if(turnoAtual==BRANCA && lNova > lAntiga){
+            return false;
+        }
+        if(turnoAtual==PRETA && lNova < lAntiga){
+            return false;
+
+        }
+
+        //criar um metodo que verifica se pode comer uma peca e reutiliza-lo para verificar se posso fazer uma nova jogada para otimizar o codigo
+        //atribuir a cada posicao do tabuleiro um char e criar uma hask para decodificar a possição da tabela
+        //Verificar o ganhador tem que ser feito de maneira rapida e sempre verificar de maneira otimizada
+        //lembrar de heuristica de podas na arvores
+        //se existir somente 2 damas e elas nao puderem comer EMPATE
         matriz[lNova][cNova] = matriz[lAntiga][cAntiga];
         matriz[lAntiga][cAntiga] = 0;
 
+        if (matriz[lNova][cNova] == BRANCA && lNova == 0) {
+            matriz[lNova][cNova] = DAMA_BRANCA;
+        }
+        else if (matriz[lNova][cNova] == PRETA && lNova == 5) {
+            matriz[lNova][cNova] = DAMA_PRETA;
+        }
+
         return true;
     }
-    
+
 
     public char[][] getMatriz() {
         return matriz;

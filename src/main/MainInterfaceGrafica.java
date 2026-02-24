@@ -94,6 +94,9 @@ public final class MainInterfaceGrafica extends JFrame {
         } 
         // Caso 2: Já existe uma peça selecionada, tentando mover
         else {
+
+            char idOrigem = tabuleiroLogico.getId(linhaOrigem, colOrigem);
+            char idDestino = tabuleiroLogico.getId(linha, col);
             
             // Se clicar na mesma peça, cancela a seleção
             if (linhaOrigem == linha && colOrigem == col) {
@@ -101,7 +104,7 @@ public final class MainInterfaceGrafica extends JFrame {
                 return;
             }
 
-            boolean sucesso = moverPecaLogica(linhaOrigem, colOrigem, linha, col);
+            boolean sucesso = moverPecaLogica(idOrigem, idDestino);
 
             if (sucesso) {
                 tabuleiroLogico.alternarTurno();
@@ -119,6 +122,7 @@ public final class MainInterfaceGrafica extends JFrame {
                 cancelarSelecao();
             }
         }
+
     }
 
     private void cancelarSelecao() {
@@ -130,19 +134,11 @@ public final class MainInterfaceGrafica extends JFrame {
         colOrigem = -1;
     }
 
-    private boolean moverPecaLogica(int r1, int c1, int r2, int c2) {
-        boolean sucesso = tabuleiroLogico.verificaMovimento(r1, c1, r2, c2);
+    private boolean moverPecaLogica(char id1,char id2) {
+        int[] origem = tabuleiroLogico.getCoordenadas(id1);
+        int[] destino = tabuleiroLogico.getCoordenadas(id2);
 
-        if (sucesso) {
-            int peca = tabuleiroLogico.getMatriz()[r2][c2];
-            if (peca == 2 && r2 == 5) {
-                tabuleiroLogico.getMatriz()[r2][c2] = 4;
-            } else if (peca == 1 && r2 == 0) {
-                tabuleiroLogico.getMatriz()[r2][c2] = 3;
-            }
-        }
-
-        return sucesso;
+        return tabuleiroLogico.verificaMovimento(origem[0], origem[1], destino[0], destino[1]);
     }
 
 
