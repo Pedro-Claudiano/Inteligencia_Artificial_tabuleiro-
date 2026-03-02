@@ -107,7 +107,9 @@ public final class MainInterfaceGrafica extends JFrame {
             boolean sucesso = moverPecaLogica(idOrigem, idDestino);
 
             if (sucesso) {
-                tabuleiroLogico.alternarTurno();
+                if(!tabuleiroLogico.isEmCombo()){
+                    tabuleiroLogico.alternarTurno();
+                }
                 cancelarSelecao();
                 sincronizarInterface();
                 atualizarTitulo();
