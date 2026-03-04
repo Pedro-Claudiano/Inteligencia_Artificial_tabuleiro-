@@ -95,10 +95,35 @@ public class Tabuleiro implements Cloneable {
 
     public boolean podeCapturar(int l, int c, boolean souCombo) {
         char peca = matriz[l][c];
-        if (peca == VAZIO){
+        if (peca == VAZIO) return false;
+
+        // Dama
+        if (peca == DAMA_BRANCA || peca == DAMA_PRETA) {
+            int[] dl = {-1, -1, 1, 1};
+            int[] dc = {-1, 1, -1, 1};
+
+            for (int i = 0; i < 4; i++) {
+                for (int dist = 1; dist < TAMANHO; dist++) {
+                    int lInimigo = l + (dist * dl[i]);
+                    int cInimigo = c + (dist * dc[i]);
+                    int lFinal = lInimigo + dl[i];
+                    int cFinal = cInimigo + dc[i];
+
+                    if (lFinal >= 0 && lFinal < TAMANHO && cFinal >= 0 && cFinal < TAMANHO) {
+                        char pCaminho = matriz[lInimigo][cInimigo];
+                        if (pCaminho != VAZIO) {
+                            if (!MesmoTime(peca, pCaminho) && matriz[lFinal][cFinal] == VAZIO) {
+                                return true;
+                            }
+                            break;
+                        }
+                    } else break;
+                }
+            }
             return false;
         }
 
+        // Peca Comum
         int[] dl = {-2, -2, 2, 2};
         int[] dc = {-2, 2, -2, 2};
 
@@ -111,7 +136,6 @@ public class Tabuleiro implements Cloneable {
             if (lFinal >= 0 && lFinal < TAMANHO && cFinal >= 0 && cFinal < TAMANHO) {
                 if (matriz[lFinal][cFinal] == VAZIO && matriz[lMeio][cMeio] != VAZIO) {
                     if (getTimeDaPeca(lMeio, cMeio) != getTurnoAtual()) {
-
                         if (!souCombo && (peca == BRANCA || peca == PRETA)) {
                             boolean paraFrente = (peca == BRANCA) ? (dl[i] < 0) : (dl[i] > 0);
                             if (!paraFrente) continue;
@@ -128,9 +152,7 @@ public class Tabuleiro implements Cloneable {
         for (int i = 0; i < TAMANHO; i++) {
             for (int j = 0; j < TAMANHO; j++) {
                 if (getTimeDaPeca(i, j) == getTurnoAtual()) {
-                    if (podeCapturar(i, j, false)){
-                        return true;
-                    }
+                    if (podeCapturar(i, j, false)) return true;
                 }
             }
         }
@@ -151,80 +173,93 @@ public class Tabuleiro implements Cloneable {
     }
 
     public boolean verificaMovimento(int lAntiga, int cAntiga, int lNova, int cNova) {
-        if (lNova < 0 || lNova >= TAMANHO || cNova < 0 || cNova >= TAMANHO) {
-            return false;
-        }
-        if ((lNova + cNova) % 2 == 0) {
-            return false;
-        }
-        if (matriz[lNova][cNova] != VAZIO) {
-            return false;
-        }
-
-        if (emCombo && (lAntiga != comboL || cAntiga != comboC)) {
-            return false;
-        }
+        if (lNova < 0 || lNova >= TAMANHO || cNova < 0 || cNova >= TAMANHO) return false;
+        if ((lNova + cNova) % 2 == 0 || matriz[lNova][cNova] != VAZIO) return false;
+        if (emCombo && (lAntiga != comboL || cAntiga != comboC)) return false;
 
         int deltaLinha = Math.abs(lNova - lAntiga);
         int deltaColuna = Math.abs(cNova - cAntiga);
+        if (deltaLinha != deltaColuna) return false;
 
-        if (deltaLinha == 2 && deltaColuna == 2) {
-            int lMeio = (lAntiga + lNova) / 2;
-            int cMeio = (cAntiga + cNova) / 2;
-            char pecaMeio = matriz[lMeio][cMeio];
+        char pecaOrigem = matriz[lAntiga][cAntiga];
 
-            if (pecaMeio != VAZIO && !MesmoTime(matriz[lAntiga][cAntiga], pecaMeio)) {
-                char pecaOrigem = matriz[lAntiga][cAntiga];
+        // Dama
+        if (pecaOrigem == DAMA_BRANCA || pecaOrigem == DAMA_PRETA) {
+            int stepL = (lNova > lAntiga) ? 1 : -1;
+            int stepC = (cNova > cAntiga) ? 1 : -1;
+            int pecasNoCaminho = 0;
+            int lInimigo = -1, cInimigo = -1;
 
-                if (!emCombo && (pecaOrigem == BRANCA || pecaOrigem == PRETA)) {
-                    boolean paraFrente = (pecaOrigem == BRANCA) ? (lNova < lAntiga) : (lNova > lAntiga);
-                    if (!paraFrente) return false;
+            for (int i = 1; i < deltaLinha; i++) {
+                int lAtual = lAntiga + (i * stepL);
+                int cAtual = cAntiga + (i * stepC);
+                char pCaminho = matriz[lAtual][cAtual];
+                if (pCaminho != VAZIO) {
+                    if (MesmoTime(pecaOrigem, pCaminho)) return false;
+                    pecasNoCaminho++;
+                    lInimigo = lAtual;
+                    cInimigo = cAtual;
                 }
+            }
 
-                matriz[lNova][cNova] = matriz[lAntiga][cAntiga];
+            if (pecasNoCaminho == 0 && !emCombo) {
+                if (existeCapturaObrigatoria()) return false;
+                matriz[lNova][cNova] = pecaOrigem;
                 matriz[lAntiga][cAntiga] = VAZIO;
-                matriz[lMeio][cMeio] = VAZIO;
+                return true;
+            }
 
-                char pecaAntes = matriz[lNova][cNova];
+            if (pecasNoCaminho == 1 && (lInimigo + stepL == lNova && cInimigo + stepC == cNova)) {
+                matriz[lNova][cNova] = pecaOrigem;
+                matriz[lAntiga][cAntiga] = VAZIO;
+                matriz[lInimigo][cInimigo] = VAZIO;
+                if (podeCapturar(lNova, cNova, true)) {
+                    emCombo = true;
+                    comboL = lNova; comboC = cNova;
+                } else emCombo = false;
+                return true;
+            }
+            return false;
+        }
+
+        // Peca Comum - Captura
+        if (deltaLinha == 2) {
+            int lM = (lAntiga + lNova) / 2;
+            int cM = (cAntiga + cNova) / 2;
+            if (matriz[lM][cM] != VAZIO && !MesmoTime(pecaOrigem, matriz[lM][cM])) {
+                if (!emCombo && (pecaOrigem == BRANCA || pecaOrigem == PRETA)) {
+                    boolean frente = (pecaOrigem == BRANCA) ? (lNova < lAntiga) : (lNova > lAntiga);
+                    if (!frente) return false;
+                }
+                matriz[lNova][cNova] = pecaOrigem;
+                matriz[lAntiga][cAntiga] = VAZIO;
+                matriz[lM][cM] = VAZIO;
+
+                char pAntes = matriz[lNova][cNova];
                 checarPromocao(lNova, cNova);
-                char pecaDepois = matriz[lNova][cNova];
-
-                if (pecaAntes != pecaDepois) {
-                    emCombo = false;
-                    return true;
+                if (pAntes != matriz[lNova][cNova]) {
+                    emCombo = false; return true;
                 }
 
                 if (podeCapturar(lNova, cNova, true)) {
                     emCombo = true;
-                    comboL = lNova;
-                    comboC = cNova;
-                } else {
-                    emCombo = false;
-                }
+                    comboL = lNova; comboC = cNova;
+                } else emCombo = false;
                 return true;
             }
         }
 
-        if (deltaLinha == 1 && deltaColuna == 1 && !emCombo) {
-            if (existeCapturaObrigatoria()) {
-                return false;
-            }
+        // Peca Comum - Movimento Simples
+        if (deltaLinha == 1 && !emCombo) {
+            if (existeCapturaObrigatoria()) return false;
+            if (pecaOrigem == BRANCA && lNova > lAntiga) return false;
+            if (pecaOrigem == PRETA && lNova < lAntiga) return false;
 
-            char pecaOrigem = matriz[lAntiga][cAntiga];
-            if (pecaOrigem == BRANCA && lNova > lAntiga) {
-                return false;
-            }
-            if (pecaOrigem == PRETA && lNova < lAntiga) {
-                return false;
-            }
-
-            matriz[lNova][cNova] = matriz[lAntiga][cAntiga];
+            matriz[lNova][cNova] = pecaOrigem;
             matriz[lAntiga][cAntiga] = VAZIO;
-
             checarPromocao(lNova, cNova);
             return true;
         }
-
         return false;
     }
 
@@ -233,24 +268,12 @@ public class Tabuleiro implements Cloneable {
         try {
             Tabuleiro clone = (Tabuleiro) super.clone();
             clone.matriz = new char[TAMANHO][];
-            for (int i = 0; i < TAMANHO; i++) {
-                clone.matriz[i] = this.matriz[i].clone();
-            }
+            for (int i = 0; i < TAMANHO; i++) clone.matriz[i] = this.matriz[i].clone();
             return clone;
-        } catch (CloneNotSupportedException e) {
-            return null;
-        }
+        } catch (CloneNotSupportedException e) { return null; }
     }
 
-    public char[][] getMatriz() {
-        return matriz;
-    }
-
-    public void setMatriz(char[][] matriz) {
-        this.matriz = matriz;
-    }
-
-    public boolean isEmCombo() {
-        return emCombo;
-    }
+    public char[][] getMatriz() { return matriz; }
+    public void setMatriz(char[][] matriz) { this.matriz = matriz; }
+    public boolean isEmCombo() { return emCombo; }
 }
