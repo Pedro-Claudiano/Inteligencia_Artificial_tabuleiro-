@@ -5,7 +5,7 @@ package main;
  */
 public class Tabuleiro implements Cloneable {
 
-    private char [][] matriz;
+    private char[][] matriz;
     private final int TAMANHO = 6;
     public static final int VAZIO = 0;
     public static final int BRANCA = 1;
@@ -13,13 +13,18 @@ public class Tabuleiro implements Cloneable {
     public static final int DAMA_BRANCA = 3;
     public static final int DAMA_PRETA = 4;
 
+    private int turnoAtual = BRANCA;
+    private boolean emCombo = false;
+    private int comboL = -1, comboC = -1;
+    private int contadorEmpateDamas = -1;
+
     private static final int[][] DECODER_POSICAO = {
-            {0,1}, {0,3}, {0,5}, // a, b, c
-            {1,0}, {1,2}, {1,4}, // d, e, f
-            {2,1}, {2,3}, {2,5}, // g, h, i
-            {3,0}, {3,2}, {3,4}, // j, k, l
-            {4,1}, {4,3}, {4,5}, // m, n, o
-            {5,0}, {5,2}, {5,4}  // p, q, r
+            {0, 1}, {0, 3}, {0, 5}, // a, b, c
+            {1, 0}, {1, 2}, {1, 4}, // d, e, f
+            {2, 1}, {2, 3}, {2, 5}, // g, h, i
+            {3, 0}, {3, 2}, {3, 4}, // j, k, l
+            {4, 1}, {4, 3}, {4, 5}, // m, n, o
+            {5, 0}, {5, 2}, {5, 4}  // p, q, r
     };
 
     private static final char[][] ENCODER_POSICAO = {
@@ -31,14 +36,6 @@ public class Tabuleiro implements Cloneable {
             {'p', ' ', 'q', ' ', 'r', ' '}
     };
 
-    public int[] getCoordenadas(char id) {
-        return DECODER_POSICAO[id - 'a'];
-    }
-
-    public char getId(int l, int c) {
-        return ENCODER_POSICAO[l][c];
-    }
-
     public Tabuleiro() {
         this.matriz = new char[TAMANHO][TAMANHO];
         inicializar();
@@ -48,13 +45,9 @@ public class Tabuleiro implements Cloneable {
         for (int i = 0; i < TAMANHO; i++) {
             for (int j = 0; j < TAMANHO; j++) {
                 if ((i + j) % 2 != 0) {
-                    if (i < 2) {
-                        matriz[i][j] = PRETA;
-                    } else if (i > 3) {
-                        matriz[i][j] = BRANCA;
-                    } else {
-                        matriz[i][j] = VAZIO;
-                    }
+                    if (i < 2) matriz[i][j] = PRETA;
+                    else if (i > 3) matriz[i][j] = BRANCA;
+                    else matriz[i][j] = VAZIO;
                 } else {
                     matriz[i][j] = VAZIO;
                 }
@@ -62,85 +55,73 @@ public class Tabuleiro implements Cloneable {
         }
     }
 
-    private int turnoAtual = BRANCA;
-
-    public int getTurnoAtual() {
-        return turnoAtual;
-    }
+    // Gerenciamento de Turno
+    public int getTurnoAtual() { return turnoAtual; }
 
     public boolean TurnoCorreto(int l, int c) {
         char peca = matriz[l][c];
-        if (turnoAtual == BRANCA) {
-            return (peca == BRANCA || peca == DAMA_BRANCA);
-        } else {
-            return (peca == PRETA || peca == DAMA_PRETA);
-        }
+        if (turnoAtual == BRANCA) return (peca == BRANCA || peca == DAMA_BRANCA);
+        else return (peca == PRETA || peca == DAMA_PRETA);
     }
 
     public void alternarTurno() {
         this.turnoAtual = (this.turnoAtual == BRANCA) ? PRETA : BRANCA;
     }
 
-    private void checarPromocao(int l, int c) {
-        if (matriz[l][c] == BRANCA && l == 0) {
-            matriz[l][c] = DAMA_BRANCA;
-        }
-        else if (matriz[l][c] == PRETA && l == 5){
-            matriz[l][c] = DAMA_PRETA;
-        }
+    // Auxiliares de Peca
+    public int getTimeDaPeca(int l, int c) {
+        char p = matriz[l][c];
+        if (p == BRANCA || p == DAMA_BRANCA) return BRANCA;
+        if (p == PRETA || p == DAMA_PRETA) return PRETA;
+        return VAZIO;
     }
 
-    private boolean emCombo = false;
-    private int comboL = -1, comboC = -1;
+    private boolean MesmoTime(char p1, char p2) {
+        return getTimeDaPeca(0, 0) == getTimeDaPeca(0, 0); // Placeholder para lógica de tempo
+    }
 
+    private boolean isMesmoTime(int l1, int c1, int l2, int c2) {
+        return getTimeDaPeca(l1, c1) == getTimeDaPeca(l2, c2);
+    }
+
+    private void checarPromocao(int l, int c) {
+        if (matriz[l][c] == BRANCA && l == 0) matriz[l][c] = DAMA_BRANCA;
+        else if (matriz[l][c] == PRETA && l == 5) matriz[l][c] = DAMA_PRETA;
+    }
+
+    // Logica de Captura
     public boolean podeCapturar(int l, int c, boolean souCombo) {
         char peca = matriz[l][c];
         if (peca == VAZIO) return false;
 
-        // Dama
         if (peca == DAMA_BRANCA || peca == DAMA_PRETA) {
-            int[] dl = {-1, -1, 1, 1};
-            int[] dc = {-1, 1, -1, 1};
-
+            int[] dl = {-1, -1, 1, 1}, dc = {-1, 1, -1, 1};
             for (int i = 0; i < 4; i++) {
                 for (int dist = 1; dist < TAMANHO; dist++) {
-                    int lInimigo = l + (dist * dl[i]);
-                    int cInimigo = c + (dist * dc[i]);
-                    int lFinal = lInimigo + dl[i];
-                    int cFinal = cInimigo + dc[i];
-
-                    if (lFinal >= 0 && lFinal < TAMANHO && cFinal >= 0 && cFinal < TAMANHO) {
-                        char pCaminho = matriz[lInimigo][cInimigo];
-                        if (pCaminho != VAZIO) {
-                            if (!MesmoTime(peca, pCaminho) && matriz[lFinal][cFinal] == VAZIO) {
-                                return true;
-                            }
+                    int lI = l + (dist * dl[i]), cI = c + (dist * dc[i]);
+                    int lF = lI + dl[i], cF = cI + dc[i];
+                    if (lF >= 0 && lF < TAMANHO && cF >= 0 && cF < TAMANHO) {
+                        if (matriz[lI][cI] != VAZIO) {
+                            if (!isMesmoTime(l, c, lI, cI) && matriz[lF][cF] == VAZIO) return true;
                             break;
                         }
                     } else break;
                 }
             }
-            return false;
-        }
-
-        // Peca Comum
-        int[] dl = {-2, -2, 2, 2};
-        int[] dc = {-2, 2, -2, 2};
-
-        for (int i = 0; i < 4; i++) {
-            int lFinal = l + dl[i];
-            int cFinal = c + dc[i];
-            int lMeio = l + dl[i] / 2;
-            int cMeio = c + dc[i] / 2;
-
-            if (lFinal >= 0 && lFinal < TAMANHO && cFinal >= 0 && cFinal < TAMANHO) {
-                if (matriz[lFinal][cFinal] == VAZIO && matriz[lMeio][cMeio] != VAZIO) {
-                    if (getTimeDaPeca(lMeio, cMeio) != getTurnoAtual()) {
-                        if (!souCombo && (peca == BRANCA || peca == PRETA)) {
-                            boolean paraFrente = (peca == BRANCA) ? (dl[i] < 0) : (dl[i] > 0);
-                            if (!paraFrente) continue;
+        } else {
+            int[] dl = {-2, -2, 2, 2}, dc = {-2, 2, -2, 2};
+            for (int i = 0; i < 4; i++) {
+                int lF = l + dl[i], cF = c + dc[i];
+                int lM = l + dl[i] / 2, cM = c + dc[i] / 2;
+                if (lF >= 0 && lF < TAMANHO && cF >= 0 && cF < TAMANHO) {
+                    if (matriz[lF][cF] == VAZIO && matriz[lM][cM] != VAZIO) {
+                        if (!isMesmoTime(l, c, lM, cM)) {
+                            if (!souCombo) {
+                                boolean frente = (peca == BRANCA) ? (dl[i] < 0) : (dl[i] > 0);
+                                if (!frente) continue;
+                            }
+                            return true;
                         }
-                        return true;
                     }
                 }
             }
@@ -151,117 +132,112 @@ public class Tabuleiro implements Cloneable {
     public boolean existeCapturaObrigatoria() {
         for (int i = 0; i < TAMANHO; i++) {
             for (int j = 0; j < TAMANHO; j++) {
-                if (getTimeDaPeca(i, j) == getTurnoAtual()) {
-                    if (podeCapturar(i, j, false)) return true;
-                }
+                if (getTimeDaPeca(i, j) == turnoAtual && podeCapturar(i, j, false)) return true;
             }
         }
         return false;
     }
 
-    public int getTimeDaPeca(int l, int c) {
-        char p = matriz[l][c];
-        if (p == BRANCA || p == DAMA_BRANCA) return BRANCA;
-        if (p == PRETA || p == DAMA_PRETA) return PRETA;
-        return VAZIO;
-    }
+    // Movimentacao Principal
+    public boolean verificaMovimento(int lA, int cA, int lN, int cN) {
+        if (lN < 0 || lN >= TAMANHO || cN < 0 || cN >= TAMANHO) return false;
+        if ((lN + cN) % 2 == 0 || matriz[lN][cN] != VAZIO) return false;
+        if (emCombo && (lA != comboL || cA != comboC)) return false;
 
-    private boolean MesmoTime(char p1, char p2) {
-        int timeP1 = (p1 == BRANCA || p1 == DAMA_BRANCA) ? 1 : 2;
-        int timeP2 = (p2 == BRANCA || p2 == DAMA_BRANCA) ? 1 : 2;
-        return timeP1 == timeP2;
-    }
-
-    public boolean verificaMovimento(int lAntiga, int cAntiga, int lNova, int cNova) {
-        if (lNova < 0 || lNova >= TAMANHO || cNova < 0 || cNova >= TAMANHO) return false;
-        if ((lNova + cNova) % 2 == 0 || matriz[lNova][cNova] != VAZIO) return false;
-        if (emCombo && (lAntiga != comboL || cAntiga != comboC)) return false;
-
-        int deltaLinha = Math.abs(lNova - lAntiga);
-        int deltaColuna = Math.abs(cNova - cAntiga);
-        if (deltaLinha != deltaColuna) return false;
-
-        char pecaOrigem = matriz[lAntiga][cAntiga];
+        int dL = Math.abs(lN - lA), dC = Math.abs(cN - cA);
+        if (dL != dC) return false;
+        char peca = matriz[lA][cA];
 
         // Dama
-        if (pecaOrigem == DAMA_BRANCA || pecaOrigem == DAMA_PRETA) {
-            int stepL = (lNova > lAntiga) ? 1 : -1;
-            int stepC = (cNova > cAntiga) ? 1 : -1;
-            int pecasNoCaminho = 0;
-            int lInimigo = -1, cInimigo = -1;
-
-            for (int i = 1; i < deltaLinha; i++) {
-                int lAtual = lAntiga + (i * stepL);
-                int cAtual = cAntiga + (i * stepC);
-                char pCaminho = matriz[lAtual][cAtual];
-                if (pCaminho != VAZIO) {
-                    if (MesmoTime(pecaOrigem, pCaminho)) return false;
-                    pecasNoCaminho++;
-                    lInimigo = lAtual;
-                    cInimigo = cAtual;
+        if (peca == DAMA_BRANCA || peca == DAMA_PRETA) {
+            int sL = (lN > lA) ? 1 : -1, sC = (cN > cA) ? 1 : -1;
+            int pecas = 0, lI = -1, cI = -1;
+            for (int i = 1; i < dL; i++) {
+                int lAt = lA + (i * sL), cAt = cA + (i * sC);
+                if (matriz[lAt][cAt] != VAZIO) {
+                    if (isMesmoTime(lA, cA, lAt, cAt)) return false;
+                    pecas++; lI = lAt; cI = cAt;
                 }
             }
-
-            if (pecasNoCaminho == 0 && !emCombo) {
+            if (pecas == 0 && !emCombo) {
                 if (existeCapturaObrigatoria()) return false;
-                matriz[lNova][cNova] = pecaOrigem;
-                matriz[lAntiga][cAntiga] = VAZIO;
-                return true;
+                matriz[lN][cN] = peca; matriz[lA][cA] = VAZIO; return true;
             }
-
-            if (pecasNoCaminho == 1 && (lInimigo + stepL == lNova && cInimigo + stepC == cNova)) {
-                matriz[lNova][cNova] = pecaOrigem;
-                matriz[lAntiga][cAntiga] = VAZIO;
-                matriz[lInimigo][cInimigo] = VAZIO;
-                if (podeCapturar(lNova, cNova, true)) {
-                    emCombo = true;
-                    comboL = lNova; comboC = cNova;
-                } else emCombo = false;
-                return true;
-            }
-            return false;
-        }
-
-        // Peca Comum - Captura
-        if (deltaLinha == 2) {
-            int lM = (lAntiga + lNova) / 2;
-            int cM = (cAntiga + cNova) / 2;
-            if (matriz[lM][cM] != VAZIO && !MesmoTime(pecaOrigem, matriz[lM][cM])) {
-                if (!emCombo && (pecaOrigem == BRANCA || pecaOrigem == PRETA)) {
-                    boolean frente = (pecaOrigem == BRANCA) ? (lNova < lAntiga) : (lNova > lAntiga);
-                    if (!frente) return false;
-                }
-                matriz[lNova][cNova] = pecaOrigem;
-                matriz[lAntiga][cAntiga] = VAZIO;
-                matriz[lM][cM] = VAZIO;
-
-                char pAntes = matriz[lNova][cNova];
-                checarPromocao(lNova, cNova);
-                if (pAntes != matriz[lNova][cNova]) {
-                    emCombo = false; return true;
-                }
-
-                if (podeCapturar(lNova, cNova, true)) {
-                    emCombo = true;
-                    comboL = lNova; comboC = cNova;
-                } else emCombo = false;
+            if (pecas == 1 && (lI + sL == lN && cI + sC == cN)) {
+                matriz[lN][cN] = peca; matriz[lA][cA] = VAZIO; matriz[lI][cI] = VAZIO;
+                if (podeCapturar(lN, cN, true)) { emCombo = true; comboL = lN; comboC = cN; }
+                else emCombo = false;
                 return true;
             }
         }
-
-        // Peca Comum - Movimento Simples
-        if (deltaLinha == 1 && !emCombo) {
-            if (existeCapturaObrigatoria()) return false;
-            if (pecaOrigem == BRANCA && lNova > lAntiga) return false;
-            if (pecaOrigem == PRETA && lNova < lAntiga) return false;
-
-            matriz[lNova][cNova] = pecaOrigem;
-            matriz[lAntiga][cAntiga] = VAZIO;
-            checarPromocao(lNova, cNova);
-            return true;
+        // Peca Comum
+        else {
+            if (dL == 2) {
+                int lM = (lA + lN) / 2, cM = (cA + cN) / 2;
+                if (matriz[lM][cM] != VAZIO && !isMesmoTime(lA, cA, lM, cM)) {
+                    if (!emCombo) {
+                        boolean f = (peca == BRANCA) ? (lN < lA) : (lN > lA);
+                        if (!f) return false;
+                    }
+                    matriz[lN][cN] = peca; matriz[lA][cA] = VAZIO; matriz[lM][cM] = VAZIO;
+                    char pAnt = matriz[lN][cN]; checarPromocao(lN, cN);
+                    if (pAnt != matriz[lN][cN]) { emCombo = false; return true; }
+                    if (podeCapturar(lN, cN, true)) { emCombo = true; comboL = lN; comboC = cN; }
+                    else emCombo = false;
+                    return true;
+                }
+            } else if (dL == 1 && !emCombo) {
+                if (existeCapturaObrigatoria()) return false;
+                if ((peca == BRANCA && lN > lA) || (peca == PRETA && lN < lA)) return false;
+                matriz[lN][cN] = peca; matriz[lA][cA] = VAZIO; checarPromocao(lN, cN); return true;
+            }
         }
         return false;
     }
+
+    // Verificacao de Estado Final
+    public int verificarEstadoJogo() {
+        int b = 0, p = 0;
+        boolean movB = false, movP = false;
+        for (int i = 0; i < TAMANHO; i++) {
+            for (int j = 0; j < TAMANHO; j++) {
+                if (matriz[i][j] == VAZIO) continue;
+                if (getTimeDaPeca(i, j) == BRANCA) { b++; if (!movB) movB = temAlgumLance(i, j); }
+                else { p++; if (!movP) movP = temAlgumLance(i, j); }
+            }
+        }
+        if (b == 0 || (turnoAtual == BRANCA && !movB)) return PRETA;
+        if (p == 0 || (turnoAtual == PRETA && !movP)) return BRANCA;
+        if (b == 1 && p == 1 && apenasDamas()) {
+            if (contadorEmpateDamas == -1) contadorEmpateDamas = 2;
+            else if (--contadorEmpateDamas == 0) return 3; // Empate
+        } else contadorEmpateDamas = -1;
+        return 0;
+    }
+
+    private boolean temAlgumLance(int l, int c) {
+        if (podeCapturar(l, c, false)) return true;
+        int[] dl = {-1, -1, 1, 1}, dc = {-1, 1, -1, 1};
+        for (int i = 0; i < 4; i++) {
+            int nL = l + dl[i], nC = c + dc[i];
+            if (nL >= 0 && nL < TAMANHO && nC >= 0 && nC < TAMANHO && matriz[nL][nC] == VAZIO) {
+                char p = matriz[l][c];
+                if (p > 2 || (p == BRANCA && nL < l) || (p == PRETA && nL > l)) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean apenasDamas() {
+        for (char[] linha : matriz) for (char p : linha) if (p == BRANCA || p == PRETA) return false;
+        return true;
+    }
+
+    // Metodos do Sistema
+    public int[] getCoordenadas(char id) { return DECODER_POSICAO[id - 'a']; }
+    public char getId(int l, int c) { return ENCODER_POSICAO[l][c]; }
+    public char[][] getMatriz() { return matriz; }
+    public boolean isEmCombo() { return emCombo; }
 
     @Override
     public Tabuleiro clone() {
@@ -272,8 +248,4 @@ public class Tabuleiro implements Cloneable {
             return clone;
         } catch (CloneNotSupportedException e) { return null; }
     }
-
-    public char[][] getMatriz() { return matriz; }
-    public void setMatriz(char[][] matriz) { this.matriz = matriz; }
-    public boolean isEmCombo() { return emCombo; }
 }
