@@ -52,7 +52,8 @@ public final class MainInterfaceGrafica extends JFrame {
     }
 
     private void tratarClique(int linha, int col) {
-        // Caso 1: Selecionando a peça
+        if (tabuleiroLogico.getTurnoAtual() == Tabuleiro.PRETA) return;
+
         if (linhaOrigem == -1) {
             if (tabuleiroLogico.TurnoCorreto(linha, col)) {
                 linhaOrigem = linha;
@@ -61,7 +62,6 @@ public final class MainInterfaceGrafica extends JFrame {
                 atualizarTitulo();
             }
         }
-        // Caso 2: Movimentando a peça
         else {
             char idOrigem = tabuleiroLogico.getId(linhaOrigem, colOrigem);
             char idDestino = tabuleiroLogico.getId(linha, col);
@@ -74,7 +74,6 @@ public final class MainInterfaceGrafica extends JFrame {
             boolean sucesso = moverPecaLogica(idOrigem, idDestino);
 
             if (sucesso) {
-                // Só alterna o turno se não estiver em sequência de capturas
                 if (!tabuleiroLogico.isEmCombo()) {
                     tabuleiroLogico.alternarTurno();
                 }
@@ -83,22 +82,57 @@ public final class MainInterfaceGrafica extends JFrame {
                 sincronizarInterface();
                 atualizarTitulo();
 
-                // Verificação de vitória ou empate
-                int estado = tabuleiroLogico.verificarEstadoJogo();
-                if (estado != 0) {
-                    String mensagem = "";
-                    if (estado == Tabuleiro.BRANCA) mensagem = "FIM DE JOGO! VITÓRIA DAS BRANCAS!";
-                    else if (estado == Tabuleiro.PRETA) mensagem = "FIM DE JOGO! VITÓRIA DAS PRETAS!";
-                    else if (estado == 3) mensagem = "EMPATE! (SOMENTE 2 DAMAS)";
+                if (checarFimDeJogo()) return;
 
-                    JOptionPane.showMessageDialog(this, mensagem);
-                    System.exit(0);
+                if (tabuleiroLogico.getTurnoAtual() == Tabuleiro.PRETA) {
+                    dispararJogadaIA();
                 }
 
             } else {
                 cancelarSelecao();
             }
         }
+    }
+
+    private void dispararJogadaIA() {
+        Timer timerIA = new Timer(600, e -> {
+            MotorIA motor = new MotorIA(10);
+            Movimento melhor = motor.buscarMelhorJogada(tabuleiroLogico);
+
+            if (melhor != null) {
+                tabuleiroLogico.verificaMovimento(melhor.lOrigem, melhor.cOrigem, melhor.lDestino, melhor.cDestino);
+
+                if (!tabuleiroLogico.isEmCombo()) {
+                    tabuleiroLogico.alternarTurno();
+                } else {
+                    sincronizarInterface();
+                    dispararJogadaIA();
+                    return;
+                }
+
+                sincronizarInterface();
+                atualizarTitulo();
+                checarFimDeJogo();
+            }
+        });
+        timerIA.setRepeats(false);
+        timerIA.start();
+    }
+
+    private boolean checarFimDeJogo() {
+        int estado = tabuleiroLogico.verificarEstadoJogo();
+        if (estado != 0) {
+            String mensagem = switch (estado) {
+                case Tabuleiro.BRANCA -> "FIM DE JOGO! VITÓRIA DAS BRANCAS!";
+                case Tabuleiro.PRETA -> "FIM DE JOGO! VITÓRIA DAS PRETAS!";
+                case 3 -> "EMPATE POR FALTA DE CAPTURAS!";
+                default -> "FIM DE JOGO!";
+            };
+            JOptionPane.showMessageDialog(this, mensagem);
+            System.exit(0);
+            return true;
+        }
+        return false;
     }
 
     private void cancelarSelecao() {
@@ -143,18 +177,16 @@ public final class MainInterfaceGrafica extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             int margem = 10;
-            // Peças comuns (1 e 2) ou Damas (3 e 4)
-            if (tipoPeca == 1 || tipoPeca == 3) { // Brancas
+            if (tipoPeca == 1 || tipoPeca == 3) {
                 g2.setColor(Color.WHITE);
                 g2.fillOval(margem, margem, getWidth() - 2 * margem, getHeight() - 2 * margem);
                 g2.setColor(Color.BLACK);
                 g2.drawOval(margem, margem, getWidth() - 2 * margem, getHeight() - 2 * margem);
-            } else if (tipoPeca == 2 || tipoPeca == 4) { // Pretas
+            } else if (tipoPeca == 2 || tipoPeca == 4) {
                 g2.setColor(Color.BLACK);
                 g2.fillOval(margem, margem, getWidth() - 2 * margem, getHeight() - 2 * margem);
             }
 
-            // Representação de Dama
             if (tipoPeca > 2) {
                 g2.setColor(Color.YELLOW);
                 g2.setStroke(new BasicStroke(3));
