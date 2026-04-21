@@ -16,10 +16,11 @@ public class MotorIA {
 
         List<Movimento> movimentos = tabuleiro.gerarMovimentosPossiveis();
 
+        ordenarMovimentos(movimentos);
+
         for (Movimento m : movimentos) {
             Tabuleiro simulado = tabuleiro.clone();
             simulado.verificaMovimento(m.lOrigem, m.cOrigem, m.lDestino, m.cDestino);
-
 
             if (!simulado.isEmCombo()) {
                 simulado.alternarTurno();
@@ -37,24 +38,26 @@ public class MotorIA {
 
     private int minimax(Tabuleiro nodo, int prof, int alpha, int beta, boolean maximizando, int corIA) {
         int resultado = nodo.verificarEstadoJogo();
-        if (resultado != 0 || prof == 0) {
 
+        if (resultado != 0 || prof == 0) {
             return (corIA == Tabuleiro.BRANCA) ? nodo.avaliar() : -nodo.avaliar();
         }
 
         List<Movimento> movimentos = nodo.gerarMovimentosPossiveis();
+        ordenarMovimentos(movimentos);
 
         if (maximizando) {
             int maxEval = Integer.MIN_VALUE;
             for (Movimento m : movimentos) {
                 Tabuleiro filho = nodo.clone();
                 filho.verificaMovimento(m.lOrigem, m.cOrigem, m.lDestino, m.cDestino);
+
                 if (!filho.isEmCombo()) filho.alternarTurno();
 
                 int eval = minimax(filho, prof - 1, alpha, beta, false, corIA);
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
-                if (beta <= alpha) break; // Poda
+                if (beta <= alpha) break;
             }
             return maxEval;
         } else {
@@ -62,14 +65,26 @@ public class MotorIA {
             for (Movimento m : movimentos) {
                 Tabuleiro filho = nodo.clone();
                 filho.verificaMovimento(m.lOrigem, m.cOrigem, m.lDestino, m.cDestino);
+
                 if (!filho.isEmCombo()) filho.alternarTurno();
 
                 int eval = minimax(filho, prof - 1, alpha, beta, true, corIA);
                 minEval = Math.min(minEval, eval);
                 beta = Math.min(beta, eval);
-                if (beta <= alpha) break; // Poda
+                if (beta <= alpha) break;
             }
             return minEval;
         }
+    }
+
+    private void ordenarMovimentos(List<Movimento> movimentos) {
+        movimentos.sort((m1, m2) -> {
+            if (m1.ehCaptura && !m2.ehCaptura) return -1;
+            if (!m1.ehCaptura && m2.ehCaptura) return 1;
+
+            boolean m1Promove = (m1.lDestino == 0 || m1.lDestino == 5);
+            boolean m2Promove = (m2.lDestino == 0 || m2.lDestino == 5);
+            return Boolean.compare(m2Promove, m1Promove);
+        });
     }
 }

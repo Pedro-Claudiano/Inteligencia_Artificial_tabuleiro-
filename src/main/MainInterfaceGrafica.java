@@ -12,13 +12,17 @@ public final class MainInterfaceGrafica extends JFrame {
     private final CasaBotao[][] tabuleiroInterface = new CasaBotao[TAMANHO][TAMANHO];
     private final Tabuleiro tabuleiroLogico;
     private int linhaOrigem = -1, colOrigem = -1;
+    private JComboBox<String> comboDificuldade;
+
+    private int ultimoL1IA = -1, ultimoC1IA = -1;
+    private int ultimoL2IA = -1, ultimoC2IA = -1;
 
     public MainInterfaceGrafica() {
         tabuleiroLogico = new Tabuleiro();
 
         setTitle("DISCIPLINA - IA - MINI JOGO DE DAMA");
-        setSize(800, 800);
-        setLayout(new GridLayout(TAMANHO, TAMANHO));
+        setSize(800, 850);
+        setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         inicializarComponentes();
@@ -28,22 +32,25 @@ public final class MainInterfaceGrafica extends JFrame {
     }
 
     private void inicializarComponentes() {
+        JPanel painelSuperior = new JPanel();
+        String[] niveis = {"Fácil (P2)", "Médio (P4)", "Difícil (P6)", "Mestre (P10)"};
+        comboDificuldade = new JComboBox<>(niveis);
+        comboDificuldade.setSelectedIndex(1);
+        painelSuperior.add(new JLabel("Dificuldade IA: "));
+        painelSuperior.add(comboDificuldade);
+        add(painelSuperior, BorderLayout.NORTH);
+
+        JPanel painelTabuleiro = new JPanel(new GridLayout(TAMANHO, TAMANHO));
         for (int i = 0; i < TAMANHO; i++) {
             for (int j = 0; j < TAMANHO; j++) {
                 tabuleiroInterface[i][j] = new CasaBotao();
-
-                if ((i + j) % 2 == 0) {
-                    tabuleiroInterface[i][j].setBackground(new Color(235, 235, 208)); // Bege
-                } else {
-                    tabuleiroInterface[i][j].setBackground(new Color(119, 149, 86));  // Verde
-                }
-
                 int linha = i;
                 int coluna = j;
                 tabuleiroInterface[i][j].addActionListener(e -> tratarClique(linha, coluna));
-                add(tabuleiroInterface[i][j]);
+                painelTabuleiro.add(tabuleiroInterface[i][j]);
             }
         }
+        add(painelTabuleiro, BorderLayout.CENTER);
     }
 
     private void atualizarTitulo() {
@@ -61,8 +68,7 @@ public final class MainInterfaceGrafica extends JFrame {
                 tabuleiroInterface[linha][col].setBackground(Color.YELLOW);
                 atualizarTitulo();
             }
-        }
-        else {
+        } else {
             char idOrigem = tabuleiroLogico.getId(linhaOrigem, colOrigem);
             char idDestino = tabuleiroLogico.getId(linha, col);
 
@@ -74,6 +80,8 @@ public final class MainInterfaceGrafica extends JFrame {
             boolean sucesso = moverPecaLogica(idOrigem, idDestino);
 
             if (sucesso) {
+                if (comboDificuldade.isEnabled()) comboDificuldade.setEnabled(false);
+
                 if (!tabuleiroLogico.isEmCombo()) {
                     tabuleiroLogico.alternarTurno();
                 }
@@ -87,7 +95,6 @@ public final class MainInterfaceGrafica extends JFrame {
                 if (tabuleiroLogico.getTurnoAtual() == Tabuleiro.PRETA) {
                     dispararJogadaIA();
                 }
-
             } else {
                 cancelarSelecao();
             }
@@ -96,10 +103,21 @@ public final class MainInterfaceGrafica extends JFrame {
 
     private void dispararJogadaIA() {
         Timer timerIA = new Timer(600, e -> {
-            MotorIA motor = new MotorIA(10);
+            int profundidade = switch (comboDificuldade.getSelectedIndex()) {
+                case 0 -> 2;
+                case 2 -> 6;
+                case 3 -> 10;
+                default -> 4;
+            };
+
+            MotorIA motor = new MotorIA(profundidade);
             Movimento melhor = motor.buscarMelhorJogada(tabuleiroLogico);
 
             if (melhor != null) {
+
+                ultimoL1IA = melhor.lOrigem; ultimoC1IA = melhor.cOrigem;
+                ultimoL2IA = melhor.lDestino; ultimoC2IA = melhor.cDestino;
+
                 tabuleiroLogico.verificaMovimento(melhor.lOrigem, melhor.cOrigem, melhor.lDestino, melhor.cDestino);
 
                 if (!tabuleiroLogico.isEmCombo()) {
@@ -137,7 +155,7 @@ public final class MainInterfaceGrafica extends JFrame {
 
     private void cancelarSelecao() {
         if (linhaOrigem != -1) {
-            tabuleiroInterface[linhaOrigem][colOrigem].setBackground(new Color(119, 149, 86));
+            sincronizarInterface();
         }
         linhaOrigem = -1;
         colOrigem = -1;
@@ -152,8 +170,14 @@ public final class MainInterfaceGrafica extends JFrame {
     public void sincronizarInterface() {
         for (int i = 0; i < TAMANHO; i++) {
             for (int j = 0; j < TAMANHO; j++) {
-                int peca = tabuleiroLogico.getMatriz()[i][j];
-                tabuleiroInterface[i][j].setTipoPeca(peca);
+                if ((i + j) % 2 == 0) tabuleiroInterface[i][j].setBackground(new Color(235, 235, 208));
+                else tabuleiroInterface[i][j].setBackground(new Color(119, 149, 86));
+
+                if ((i == ultimoL1IA && j == ultimoC1IA) || (i == ultimoL2IA && j == ultimoC2IA)) {
+                    tabuleiroInterface[i][j].setBackground(new Color(173, 216, 230));
+                }
+
+                tabuleiroInterface[i][j].setTipoPeca(tabuleiroLogico.getMatriz()[i][j]);
             }
         }
     }
